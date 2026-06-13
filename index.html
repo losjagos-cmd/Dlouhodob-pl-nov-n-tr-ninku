@@ -164,7 +164,50 @@
   .checkbox-item input { accent-color: var(--accent); width: 14px; height: 14px; }
   .checkbox-item:has(input:checked) { border-color: var(--accent); color: var(--text); background: rgba(79,142,247,0.07); }
 
-  /* Responsive */
+  /* Tréninkové karty */
+  .trenink-karta { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 10px; transition: border 0.15s; }
+  .trenink-karta:hover { border-color: #3a4060; }
+  .trenink-karta.odcviceno { border-left: 3px solid var(--accent2); opacity: 0.75; }
+  .trenink-karta.vynechano { border-left: 3px solid var(--danger); opacity: 0.6; }
+  .trenink-karta.volno { opacity: 0.5; }
+  .tk-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .tk-den { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; min-width: 28px; }
+  .tk-typ { display: flex; align-items: center; gap: 8px; flex: 1; }
+  .tk-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .tk-icon.beh { background: rgba(79,142,247,0.12); }
+  .tk-icon.silovy { background: rgba(56,217,169,0.12); }
+  .tk-icon.volno-icon { background: rgba(84,95,117,0.15); }
+  .tk-icon.aerobni { background: rgba(246,173,85,0.12); }
+  .tk-nazev { font-size: 15px; font-weight: 500; color: var(--text); }
+  .tk-popis { font-size: 13px; color: var(--text2); }
+  .tk-actions { display: flex; gap: 6px; margin-left: auto; }
+  .tk-stav { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .stav-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .stav-ceka { background: var(--text3); }
+  .stav-odcviceno { background: var(--accent2); }
+  .stav-vynechano { background: var(--danger); }
+
+  /* Detail tréninku */
+  .trenink-detail-popis { background: var(--bg3); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem; font-size: 14px; color: var(--text2); line-height: 1.7; }
+  .cviky-tabulka { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 1rem; }
+  .cviky-tabulka th { text-align: left; padding: 8px 10px; font-size: 12px; color: var(--text3); border-bottom: 1px solid var(--border); }
+  .cviky-tabulka td { padding: 8px 10px; border-bottom: 1px solid rgba(42,48,69,0.4); }
+  .cviky-tabulka input { background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: 4px; padding: 4px 8px; width: 80px; font-size: 13px; }
+  .cviky-tabulka input:focus { outline: none; border-color: var(--accent); }
+  .predikce-vaha { font-size: 12px; color: var(--text3); }
+
+  /* Zaměření silových tréninků */
+  .zamereni-btn { padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); transition: all 0.15s; }
+  .zamereni-btn.selected { border-color: var(--accent2); color: var(--accent2); background: rgba(56,217,169,0.08); }
+
+  /* Deník */
+  .denik-karta { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+  .denik-datum { font-size: 12px; color: var(--text3); min-width: 80px; }
+  .denik-info { flex: 1; }
+  .denik-info h4 { font-size: 14px; font-weight: 500; color: var(--text); }
+  .denik-info p { font-size: 13px; color: var(--text2); }
+
+
   @media (max-width: 768px) {
     .sidebar { width: 100%; height: auto; position: relative; }
     .main { margin-left: 0; padding: 1rem; }
@@ -251,10 +294,45 @@
     <div id="sec-plan" class="section">
       <div class="page-header">
         <h2>Týdenní plán</h2>
-        <p>Generování a správa tréninků na týden.</p>
+        <p id="plan-subtitle">Vyberte klienta a vygenerujte týdenní plán.</p>
       </div>
-      <div class="card">
-        <p style="color:var(--text2); font-size:14px;">Funkce generování tréninků bude přidána v další fázi. Nejprve dokončete profil klienta.</p>
+      <div id="plan-no-client" class="empty">
+        <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin:0 auto;opacity:0.3"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <p>Nejprve vyberte klienta v horní liště.</p>
+      </div>
+      <div id="plan-content" style="display:none;">
+        <!-- Generátor -->
+        <div class="card" id="plan-generator">
+          <div class="card-title">Nastavení týdenního plánu</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Týden v cyklu</label>
+              <select id="plan-tyden">
+                <option value="1">Týden 1</option><option value="2">Týden 2</option><option value="3">Týden 3</option>
+                <option value="4">Týden 4</option><option value="5">Týden 5</option><option value="6">Týden 6</option>
+                <option value="7">Týden 7</option><option value="8">Týden 8</option><option value="9">Týden 9</option>
+                <option value="10">Týden 10</option><option value="11">Týden 11</option><option value="12">Týden 12</option>
+                <option value="13">Týden 13</option><option value="14">Týden 14</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Začátek týdne</label>
+              <input type="date" id="plan-datum">
+            </div>
+          </div>
+          <div class="card-title" style="margin-top:0.5rem;">Zaměření silových tréninků</div>
+          <div id="silove-duvody" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem;"></div>
+          <button class="btn btn-primary" onclick="generujPlan()">⚡ Vygenerovat týdenní plán</button>
+        </div>
+
+        <!-- Týdenní přehled -->
+        <div id="tydenny-prehled" style="display:none; margin-top:1.5rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h3 style="font-size:16px;font-weight:600;">Plán týdne</h3>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('tydenny-prehled').style.display='none';document.getElementById('plan-generator').style.display='block';">Upravit nastavení</button>
+          </div>
+          <div id="treninkove-karty"></div>
+        </div>
       </div>
     </div>
 
@@ -264,8 +342,8 @@
         <h2>Tréninkový deník</h2>
         <p>Záznamy odcvičených tréninků.</p>
       </div>
-      <div class="card">
-        <p style="color:var(--text2); font-size:14px;">Tréninkový deník bude dostupný po vygenerování prvního tréninkového plánu.</p>
+      <div id="denik-list">
+        <div class="empty"><p>Zatím žádné záznamy. Odcvičte první trénink v týdenním plánu.</p></div>
       </div>
     </div>
 
@@ -394,7 +472,47 @@
   </div>
 </div>
 
-<!-- Toast -->
+<!-- MODAL: Detail tréninku -->
+<div class="modal-overlay" id="modalTrenink">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <h3 id="modal-trenink-title">Detail tréninku</h3>
+      <button class="modal-close" onclick="closeModal('modalTrenink')">×</button>
+    </div>
+    <div id="modal-trenink-body"></div>
+    <div class="btn-row" id="modal-trenink-btns"></div>
+  </div>
+</div>
+
+<!-- MODAL: Důvod vynechání -->
+<div class="modal-overlay" id="modalVynechani">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h3>Proč byl trénink vynechán?</h3>
+      <button class="modal-close" onclick="closeModal('modalVynechani')">×</button>
+    </div>
+    <div class="form-group">
+      <label>Důvod</label>
+      <select id="vynechani-duvod">
+        <option value="nemoc">Nemoc</option>
+        <option value="unava_sluzba">Únava po službě</option>
+        <option value="unava_trenink">Únava po předchozím tréninku</option>
+        <option value="zraneni">Drobné zranění / bolest</option>
+        <option value="osobni">Osobní důvody</option>
+        <option value="cil_prilis_vysoki">Cíl byl příliš náročný</option>
+        <option value="jiny">Jiný důvod</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Poznámka</label>
+      <textarea id="vynechani-poznamka" placeholder="Volitelná poznámka..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="ulozVynechani()">Uložit</button>
+      <button class="btn btn-secondary" onclick="closeModal('modalVynechani')">Zrušit</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -698,7 +816,434 @@ async function saveCvik() {
   await loadCviky();
 }
 
-init();
+
+// ==================== TÝDENNÍ PLÁN ====================
+
+const DNY = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
+const ZAMERENI = [
+  { id: 'dolni', label: '🦵 Dolní tělo', icon: '🦵' },
+  { id: 'zada', label: '🔙 Záda a tah', icon: '🔙' },
+  { id: 'tlak', label: '💪 Tlak a horní tělo', icon: '💪' },
+  { id: 'plyo', label: '⚡ Plyometrie', icon: '⚡' },
+  { id: 'core', label: '🎯 Core a stabilita', icon: '🎯' },
+];
+
+// Kategorie ID mapping - načteme dynamicky
+let katMap = {};
+
+// Běžecké šablony z nahraných plánů (mílař, škálované na 3 běhy/týden)
+const BEZECKE_SABLONY = [
+  { // Týden 1
+    interval: { nazev: 'Tempový intervalový běh', popis: '6-8x 3 minuty v tempu půlmaratonu, pauza 1:30 minuty chůze-klus.' },
+    specificke: { nazev: 'Stupňovaný běh + kopce', popis: 'Rozcvičení 20 minut, stupňovaný běh + kopce 12-14x 100 metrů chůze-klus.' },
+    volny: { nazev: 'Volný běh', popis: 'Volný běh 30-60 minut v pohodlném tempu (zóna 1-2).' }
+  },
+  { // Týden 2
+    interval: { nazev: 'Intervalový běh 400m', popis: '6-8x 2 minuty v tempu 5 km, pauza 2 minuty.' },
+    specificke: { nazev: 'Volný běh + rovinky', popis: 'Volný běh 15-20 minut + rovinky 10x 100 metrů chůze-klus.' },
+    volny: { nazev: 'Volný běh', popis: 'Volný běh 30-50 minut v pohodlném tempu (zóna 1-2).' }
+  },
+  { // Týden 3
+    interval: { nazev: 'Střídavý intervalový běh', popis: 'Rozcvičení 6-10 minut, pak 5x 3 minuty vyšší intenzita (přibližně o 10-20 sekund na km rychleji než volný běh), pauza 2 minuty.' },
+    specificke: { nazev: 'Volný běh + kopce', popis: 'Volný běh 15 minut + kopce 3x 4x 50 metrů chůze mezi kopci.' },
+    volny: { nazev: 'Volný běh nebo doplňkový sport', popis: 'Volný běh 30-50 minut nebo plavání jako aerobní alternativa (zóna 1-2).' }
+  },
+  { // Týden 4
+    interval: { nazev: 'Intervalový běh 1 km', popis: '3-4x 2 km v tempu půlmaratonu, pauza 2-3 minuty chůze-klus.' },
+    specificke: { nazev: 'Tempový běh', popis: 'Rozcvičení, tempový běh 20 minut v tempu půlmaratonu, výklus 10-15 minut.' },
+    volny: { nazev: 'Volný běh nebo regenerace', popis: 'Volný běh 30-45 minut nebo regenerační klus, případně doplňkový sport.' }
+  },
+  { // Týden 5
+    interval: { nazev: 'Krátké úseky 200m', popis: '2x 8-10x 200 metrů, pauza 30-45 sekund, po sérii 5 minut. Tempo 3 km a rychleji.' },
+    specificke: { nazev: 'Volný běh + kilometrové úseky', popis: '6-8x 1 km nebo 3 minuty v tempu půlmaratonu, pauza 1:30 minuty.' },
+    volny: { nazev: 'Volný běh', popis: 'Volný běh 45-60 minut v pohodlném tempu (zóna 1-2).' }
+  },
+  { // Týden 6
+    interval: { nazev: 'Sestupné úseky', popis: '3x (1 km v tempu 10 km - 600 metrů - 400 metrů) v tempu 10 km až 5 km, pauzy 3 a 2 minuty. Po sérii 3 minuty.' },
+    specificke: { nazev: 'Volný běh + kopce', popis: 'Volný běh 10-20 minut + kopce 3x 4x 50 metrů chůze mezi kopci.' },
+    volny: { nazev: 'Volný běh', popis: 'Volný běh 40-60 minut v pohodlném tempu nebo doplňkový sport.' }
+  },
+  { // Týden 7
+    interval: { nazev: 'Smíšené úseky', popis: '3x (1 km v tempu půlmaratonu - 1 km v tempu 10 km - 600 metrů v tempu 5 km), pauza 1:30 minuty mezi úseky, po sérii 4 minuty.' },
+    specificke: { nazev: 'Rovinky + tempový', popis: '2x 10x 100 metrů rovinky, chůze-klus 100 metrů, po sérii 5 minut.' },
+    volny: { nazev: 'Volný běh', popis: 'Volný běh 40-60 minut v pohodlném tempu (zóna 1-2).' }
+  },
+  { // Týden 8
+    interval: { nazev: 'Intervalový fartlek', popis: 'Fartlek 50-90 minut: volný běh a v tom 3x 10 minut v tempu maratonu.' },
+    specificke: { nazev: 'Kopce + rovinky', popis: 'Kopce 3x 5x 60 metrů chůze mezi kopci, po sérii 5 minut. Pak rovinky 10-15x 100 metrů.' },
+    volny: { nazev: 'Volný běh', popis: 'Volný běh 30-50 minut nebo regenerační klus.' }
+  },
+  { // Týden 9
+    interval: { nazev: 'Kombinované úseky', popis: '2x (1 km v tempu půlmaratonu - 2x 8x 200 metrů v tempu 3 km - 2x 1 km v tempu půlmaratonu), pauzy 2 minuty mezi a po 1 km a 30-45 sekund mezi 200 metry. Po sérii 4-5 minut.' },
+    specificke: { nazev: 'Kilometrové úseky', popis: '4-5x 1600 metrů v tempu půlmaratonu, pauza 3-4 minuty.' },
+    volny: { nazev: 'Volný běh', popis: 'Volný běh 40-60 minut v pohodlném tempu.' }
+  },
+  { // Týden 10
+    interval: { nazev: 'Stopované úseky', popis: '3-4x 6 minut v tempu půlmaratonu + 4x 150 metrů v tempu 800 metrů, pauzy 3 minuty mezi úseky, 6 minut po sérii a 3 minuty mezi 150 metry.' },
+    specificke: { nazev: 'Kopce + volný běh', popis: 'Volný běh 15 minut + kopce 3x 4x 50 metrů chůze mezi kopci, po sérii 5 minut.' },
+    volny: { nazev: 'Volný běh', popis: 'Volný běh 30-50 minut nebo doplňkový sport.' }
+  },
+  { // Týden 11
+    interval: { nazev: 'Pyramida úseků', popis: '1200-600-600-1200-600-600-3x 200 metrů: 1200 a 600 metrů v tempu 10 km, 600 metrů v tempu 3-5 km a 200 metrů v tempu 1500-800 metrů. Pauzy po 1200 metrech 3 minuty, po 600 metrech 2 minuty a před 200 metry 6 minut. Mezi 200 metry 2 minuty.' },
+    specificke: { nazev: 'Volný běh + rozcvičení', popis: 'Volný běh 15-20 minut + rozcvičení 2x 5x 60 metrů chůze mezi úseky, po sérii 6 minut.' },
+    volny: { nazev: 'Volný běh 8-12 km', popis: 'Volný běh 8-12 km v pohodlném tempu (zóna 1-2).' }
+  },
+  { // Týden 12
+    interval: { nazev: 'Kratší intervaly 400m', popis: '2x 8-10x 400 metrů v tempu 10 km, pauza 1 minuta. Po sérii 5 minut.' },
+    specificke: { nazev: 'Kopce + rovinky', popis: '3x 4x 50 metrů kopce chůze mezi kopci, po sérii 6 minut. Pak rovinky 10-15x 100 metrů chůze-klus.' },
+    volny: { nazev: 'Volný běh', popis: 'Volný běh 40-60 minut nebo regenerační klus.' }
+  },
+  { // Týden 13
+    interval: { nazev: 'Vícerychlostní intervalový trénink', popis: '2x (600-500-400-300-200-100 metrů) v tempu 5 km a rychleji. Pauzy 2 minuty-1:45-1:30-1:20-1 minuta. Po sérii 6-8 minut.' },
+    specificke: { nazev: 'Stupňovaný běh + rovinky', popis: 'Stupňovaný běh 15 minut + rovinky 15x 100 metrů chůze-klus 100 metrů.' },
+    volny: { nazev: 'Volný běh', popis: 'Volný běh 40-60 minut v pohodlném tempu.' }
+  },
+  { // Týden 14
+    interval: { nazev: 'Kilometrové úseky s tempem', popis: '5-6x 1 km v tempu 10 km až 5 km, pauza 3 minuty.' },
+    specificke: { nazev: 'Maratonský fartlek', popis: 'Maratonský fartlek 24-34 km: volný běh a v tom 3-4x 6 km v maratonském tempu. Mezitím 5 minut volný běh.' },
+    volny: { nazev: 'Volný běh', popis: 'Volný běh 40-60 minut nebo doplňkový sport.' }
+  },
+];
+
+// Cviky podle zaměření a náročnosti (id kategorie se načte dynamicky)
+const CVIKY_ZAMERENI = {
+  dolni: {
+    hlavni: { zacatecnik: ['Dřep s činkou', 'Goblet dřep'], pokrocily: ['Mrtvý tah', 'Bulharský dřep', 'Přední dřep'], expert: ['Olympijský dřep', 'Trhání (snatch)'] },
+    doplnkove: { zacatecnik: ['Rumunský mrtvý tah', 'Výpad s činkami'], pokrocily: ['Dřep se závěsem', 'Jednodřep (pistol squat)'], expert: ['Jednodřep (pistol squat)', 'Trhání (snatch)'] },
+    telo: ['Klik', 'Přítah jednoruč na lavici', 'Plank', 'Dead bug', 'Farmer carry', 'Kettlebell swing']
+  },
+  zada: {
+    hlavni: { zacatecnik: ['Přítah jednoruč na lavici', 'Veslování s činkou'], pokrocily: ['Shyby nadhmatem', 'Shyby podhmatem'], expert: ['Shyby s přidanou vahou', 'Archer pull-up'] },
+    doplnkove: { zacatecnik: ['Přítah na kladce'], pokrocily: ['Přítah k bradě', 'Veslování s činkou'], expert: ['Shyby s přidanou vahou'] },
+    telo: ['Goblet dřep', 'Výpad s činkami', 'Hollow body hold', 'Kettlebell swing', 'Farmer carry', 'Overhead press']
+  },
+  tlak: {
+    hlavni: { zacatecnik: ['Bench press', 'Klik'], pokrocily: ['Overhead press', 'Dips'], expert: ['Klik ve stojce s oporou', 'Klik ve stojce'] },
+    doplnkove: { zacatecnik: ['Overhead press', 'Dips'], pokrocily: ['Klik s nohama na vyvýšené podložce', 'Střídavý overhead press'], expert: ['Klik ve stojce'] },
+    telo: ['Shyby nadhmatem', 'Rumunský mrtvý tah', 'Plank', 'Dead bug', 'Hanging knee raise', 'Goblet dřep']
+  },
+  plyo: {
+    hlavni: { zacatecnik: ['Box jump', 'Výskok z dřepu'], pokrocily: ['Depth jump', 'Přeskok přes překážku'], expert: ['Hurdle jump', 'Bounding'] },
+    doplnkove: { zacatecnik: ['Burpee', 'Tuck jump'], pokrocily: ['Jednodohý výskok', 'Clap klik'], expert: ['Burpee box jump', 'Bounding'] },
+    telo: ['Kettlebell swing', 'Thruster', 'Hod medicinbalem od hrudi', 'Slam medicinbalem', 'Shyby nadhmatem', 'Hollow body hold']
+  },
+  core: {
+    hlavni: { zacatecnik: ['Plank', 'Dead bug'], pokrocily: ['Hollow body hold', 'Ab wheel rollout'], expert: ['Dragon flag', 'L-sit'] },
+    doplnkove: { zacatecnik: ['Boční plank', 'Dead bug'], pokrocily: ['Hanging knee raise', 'Ab wheel rollout'], expert: ['Hanging leg raise', 'L-sit'] },
+    telo: ['Goblet dřep', 'Klik', 'Kettlebell swing', 'Farmer carry', 'Výskok z dřepu', 'Přítah jednoruč na lavici']
+  }
+};
+
+let aktivniPlan = [];
+let aktualniBezSerie = 0;
+let aktivniTreninkIndex = null;
+let vynechaniIndex = null;
+
+function initPlanSection() {
+  if (!aktKlient) {
+    document.getElementById('plan-no-client').style.display = 'block';
+    document.getElementById('plan-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('plan-no-client').style.display = 'none';
+  document.getElementById('plan-content').style.display = 'block';
+
+  // Nastav dnešní datum
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - today.getDay() + 1);
+  document.getElementById('plan-datum').value = monday.toISOString().split('T')[0];
+
+  // Render zaměření tlačítek podle počtu silových
+  const siloveCount = aktKlient.silovy_tyden || 2;
+  const gridEl = document.getElementById('silove-duvody');
+  gridEl.innerHTML = '';
+  for (let i = 0; i < siloveCount; i++) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom:0.75rem;';
+    wrap.innerHTML = `<div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Silový trénink ${i+1}:</div><div style="display:flex;flex-wrap:wrap;gap:6px;" id="zam-${i}"></div>`;
+    gridEl.appendChild(wrap);
+    const row = wrap.querySelector(`#zam-${i}`);
+    ZAMERENI.forEach(z => {
+      const b = document.createElement('button');
+      b.className = 'zamereni-btn';
+      b.dataset.zam = z.id;
+      b.dataset.slot = i;
+      b.textContent = z.label;
+      b.onclick = function() {
+        row.querySelectorAll('.zamereni-btn').forEach(x => x.classList.remove('selected'));
+        b.classList.add('selected');
+      };
+      row.appendChild(b);
+    });
+    // Default výběr
+    row.querySelector('[data-zam="dolni"]').classList.add('selected');
+    if (i === 1) { row.querySelector('[data-zam="dolni"]').classList.remove('selected'); row.querySelector('[data-zam="zada"]').classList.add('selected'); }
+  }
+}
+
+function generujPlan() {
+  if (!aktKlient) { showToast('Vyberte klienta', 'error'); return; }
+
+  const tyden = parseInt(document.getElementById('plan-tyden').value);
+  const datumStr = document.getElementById('plan-datum').value;
+  const datumZacatek = datumStr ? new Date(datumStr) : new Date();
+  const siloveCount = aktKlient.silovy_tyden || 2;
+  const behyCount = aktKlient.bezky_tyden || 3;
+
+  // Získej zaměření
+  const zamereniVybrana = [];
+  for (let i = 0; i < siloveCount; i++) {
+    const sel = document.querySelector(`#zam-${i} .zamereni-btn.selected`);
+    zamereniVybrana.push(sel ? sel.dataset.zam : 'dolni');
+  }
+
+  // Sestavení týdenního plánu
+  const sablona = BEZECKE_SABLONY[(tyden - 1) % BEZECKE_SABLONY.length];
+  aktivniPlan = [];
+
+  // Rozložení do 7 dní
+  // Logika: střídáme silové a běhy, nikdy těžký silový na DK + náročný běh ve stejný nebo následující den
+  const tydenniRozvrzeni = sestavRozvrzeni(siloveCount, behyCount, zamereniVybrana, sablona);
+
+  tydenniRozvrzeni.forEach((trenink, i) => {
+    const datum = new Date(datumZacatek);
+    datum.setDate(datumZacatek.getDate() + i);
+    aktivniPlan.push({ ...trenink, den: DNY[i], datum: datum.toLocaleDateString('cs-CZ'), stav: 'ceka', index: i });
+  });
+
+  renderTydenniPrehled();
+}
+
+function sestavRozvrzeni(siloveCount, behyCount, zamereniVybrana, sablona) {
+  const tyden = new Array(7).fill(null).map((_, i) => ({ den: DNY[i], typ: 'volno', nazev: 'Volný den', popis: 'Regenerace, aktivní odpočinek nebo lehká aktivita.', icon: '😴', iconCls: 'volno-icon', cviky: [] }));
+
+  // Rozmísti silové tréninky (Po, St, Pá nebo Po, Čt)
+  const siloveSloty = siloveCount === 1 ? [0] : siloveCount === 2 ? [0, 3] : siloveCount === 3 ? [0, 2, 4] : [0, 2, 4, 6];
+  siloveSloty.slice(0, siloveCount).forEach((slot, idx) => {
+    const zam = zamereniVybrana[idx] || 'dolni';
+    tyden[slot] = sestavSilovyTrenink(zam, idx + 1);
+    tyden[slot].den = DNY[slot];
+  });
+
+  // Rozmísti běhy - pauza po těžkém silovém na DK
+  const tezkeSloty = siloveSloty.filter((s, i) => zamereniVybrana[i] === 'dolni' || zamereniVybrana[i] === 'plyo');
+  const behTypy = ['interval', 'specificke', 'volny'].slice(0, behyCount);
+  let behIdx = 0;
+  const behSloty = [1, 3, 5, 6].filter(s => tyden[s].typ === 'volno');
+
+  behSloty.slice(0, behyCount).forEach(slot => {
+    const predchozi = slot > 0 ? tyden[slot - 1] : null;
+    const jeTezkyPredchozi = predchozi && predchozi.typ === 'silovy' && tezkeSloty.includes(slot - 1);
+    let typ = behTypy[behIdx] || 'volny';
+    if (jeTezkyPredchozi && typ === 'interval') typ = 'volny'; // Po těžkém DK jen volný běh
+    const beh = sablona[typ];
+    tyden[slot] = { typ: 'beh', nazev: beh.nazev, popis: beh.popis, icon: '🏃', iconCls: 'beh', cviky: [] };
+    tyden[slot].den = DNY[slot];
+    behIdx++;
+  });
+
+  return tyden;
+}
+
+function sestavSilovyTrenink(zam, cislo) {
+  const uroven = aktKlient ? 'pokrocily' : 'zacatecnik'; // TODO: načíst z DB
+  const vybaveni = Array.isArray(aktKlient?.vybaveni) ? aktKlient.vybaveni : [];
+  const maPosilovnu = vybaveni.includes('posilovna') || vybaveni.includes('cinky');
+
+  const zData = CVIKY_ZAMERENI[zam] || CVIKY_ZAMERENI.dolni;
+  const hlavniCviky = zData.hlavni[uroven] || zData.hlavni.zacatecnik;
+  const doplnkove = zData.doplnkove[uroven] || zData.doplnkove.zacatecnik;
+  const ostatni = zData.telo;
+
+  // Vyber náhodně z dostupných
+  const hlavni = hlavniCviky[Math.floor(Math.random() * hlavniCviky.length)];
+  const doplnek1 = doplnkove.filter(c => c !== hlavni)[0];
+  const doplnek2 = doplnkove.filter(c => c !== hlavni && c !== doplnek1)[1] || null;
+  const zbyvajici = ostatni.filter(c => c !== hlavni && c !== doplnek1 && c !== doplnek2);
+  const telocviky = zbyvajici.slice(0, 3);
+
+  const zamLabels = { dolni: 'Dolní tělo', zada: 'Záda a tah', tlak: 'Tlak a horní tělo', plyo: 'Plyometrie', core: 'Core a stabilita' };
+
+  return {
+    typ: 'silovy',
+    nazev: `Silový trénink ${cislo} — ${zamLabels[zam]}`,
+    popis: `Zaměření: ${zamLabels[zam]}. Rozcvičení 10 minut (dynamický strečink + mobilita). Hlavní část: ${hlavni} jako klíčový cvik, doplněno o podpůrné cviky a komplexní cvičení celého těla.`,
+    icon: '🏋️',
+    iconCls: 'silovy',
+    zamereni: zam,
+    cviky: [
+      { nazev: hlavni, typ: 'hlavni', serie: 4, opakovani: uroven === 'zacatecnik' ? 8 : 5, predvaha: null },
+      { nazev: doplnek1, typ: 'doplnkovy', serie: 3, opakovani: 10, predvaha: null },
+      ...(doplnek2 ? [{ nazev: doplnek2, typ: 'doplnkovy', serie: 3, opakovani: 10, predvaha: null }] : []),
+      ...zbyvajici.slice(0, 3).map(c => ({ nazev: c, typ: 'ostatni', serie: 3, opakovani: 12, predvaha: null }))
+    ]
+  };
+}
+
+function renderTydenniPrehled() {
+  document.getElementById('plan-generator').style.display = 'none';
+  document.getElementById('tydenny-prehled').style.display = 'block';
+
+  const el = document.getElementById('treninkove-karty');
+  el.innerHTML = aktivniPlan.map((t, i) => {
+    const stavDot = t.stav === 'odcviceno' ? 'stav-odcviceno' : t.stav === 'vynechano' ? 'stav-vynechano' : 'stav-ceka';
+    const stavLabel = t.stav === 'odcviceno' ? 'Odcvičeno' : t.stav === 'vynechano' ? 'Vynecháno' : 'Čeká';
+    const kartaCls = t.stav === 'odcviceno' ? 'odcviceno' : t.stav === 'vynechano' ? 'vynechano' : t.typ === 'volno' ? 'volno' : '';
+
+    return `
+      <div class="trenink-karta ${kartaCls}" id="tk-${i}">
+        <div class="tk-header">
+          <div class="tk-den">${t.den}</div>
+          <div class="tk-typ">
+            <div class="tk-icon ${t.iconCls}">${t.icon}</div>
+            <div>
+              <div class="tk-nazev">${t.nazev}</div>
+              <div class="tk-popis" style="font-size:13px;color:var(--text3);">${t.datum}</div>
+            </div>
+          </div>
+          <div class="tk-actions">
+            ${t.typ !== 'volno' ? `
+              <div class="tk-stav"><div class="stav-dot ${stavDot}"></div><span style="font-size:13px;color:var(--text3);">${stavLabel}</span></div>
+              <button class="btn btn-secondary btn-sm" onclick="otevriDetail(${i})">Detail</button>
+              ${t.stav === 'ceka' ? `
+                <button class="btn btn-sm" style="background:rgba(56,217,169,0.12);color:var(--accent2);border:1px solid rgba(56,217,169,0.3);" onclick="oznacOdcviceno(${i})">✓ Odcvičeno</button>
+                <button class="btn btn-danger btn-sm" onclick="otevriVynechani(${i})">✗ Vynecháno</button>
+              ` : ''}
+            ` : '<span style="font-size:13px;color:var(--text3);">Odpočinek</span>'}
+          </div>
+        </div>
+        ${t.typ !== 'volno' && t.popis ? `<div style="font-size:13px;color:var(--text2);padding-left:52px;">${t.popis.substring(0, 120)}${t.popis.length > 120 ? '...' : ''}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function otevriDetail(idx) {
+  const t = aktivniPlan[idx];
+  aktivniTreninkIndex = idx;
+  document.getElementById('modal-trenink-title').textContent = t.nazev;
+
+  let body = `<div class="trenink-detail-popis">${t.popis}</div>`;
+
+  if (t.typ === 'silovy' && t.cviky?.length) {
+    body += `
+      <div style="font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem;">Cviky</div>
+      <table class="cviky-tabulka">
+        <thead><tr><th>Cvik</th><th>Série</th><th>Opakování</th><th>Predikce</th><th>Reálná váha (kg)</th></tr></thead>
+        <tbody>
+          ${t.cviky.map((c, ci) => `
+            <tr>
+              <td style="color:var(--text);font-weight:${c.typ === 'hlavni' ? '500' : '400'};">${c.nazev}${c.typ === 'hlavni' ? ' <span style="font-size:11px;color:var(--accent2);">hlavní</span>' : ''}</td>
+              <td>${c.serie}</td>
+              <td>${c.opakovani}</td>
+              <td><span class="predikce-vaha">${c.predvaha ? c.predvaha + ' kg' : '—'}</span></td>
+              <td><input type="number" placeholder="kg" id="vaha-${idx}-${ci}" step="0.5" min="0" value="${c.realVaha || ''}"></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  if (t.typ === 'beh') {
+    body += `<div style="margin-top:0.75rem;padding:0.75rem 1rem;background:rgba(79,142,247,0.08);border-radius:var(--radius-sm);border-left:3px solid var(--accent);">
+      <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:4px;">Tepové zóny pro tento trénink</div>
+      <div style="font-size:13px;color:var(--text2);">
+        ${aktKlient?.max_tf ? getBehZony(t.nazev, aktKlient.max_tf) : 'Nastavte max. tepovou frekvenci v profilu klienta.'}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('modal-trenink-body').innerHTML = body;
+
+  const btns = document.getElementById('modal-trenink-btns');
+  if (t.stav === 'ceka') {
+    btns.innerHTML = `
+      <button class="btn btn-primary" onclick="ulozAOdcvic(${idx})">💾 Uložit a označit jako odcvičeno</button>
+      <button class="btn btn-secondary" onclick="closeModal('modalTrenink')">Zavřít</button>
+    `;
+  } else {
+    btns.innerHTML = `<button class="btn btn-secondary" onclick="closeModal('modalTrenink')">Zavřít</button>`;
+  }
+
+  openModal('modalTrenink');
+}
+
+function getBehZony(nazev, maxTF) {
+  if (nazev.includes('Volný') || nazev.includes('regenera')) return `Zóna 1-2: ${Math.round(maxTF*0.5)}–${Math.round(maxTF*0.7)} tepů/min`;
+  if (nazev.includes('Intervalový') || nazev.includes('úseky') || nazev.includes('Pyramida') || nazev.includes('Kombinované')) return `Interval: Zóna 4-5: ${Math.round(maxTF*0.8)}–${maxTF} tepů/min, pauzy Zóna 1: ${Math.round(maxTF*0.5)}–${Math.round(maxTF*0.6)} tepů/min`;
+  if (nazev.includes('Tempový') || nazev.includes('fartlek') || nazev.includes('Stopované')) return `Zóna 3-4: ${Math.round(maxTF*0.7)}–${Math.round(maxTF*0.87)} tepů/min`;
+  if (nazev.includes('kopce') || nazev.includes('Kopce') || nazev.includes('Stupňovaný')) return `Kopce: Zóna 4: ${Math.round(maxTF*0.8)}–${Math.round(maxTF*0.9)} tepů/min, klus mezi: Zóna 1`;
+  return `Zóna 2-3: ${Math.round(maxTF*0.6)}–${Math.round(maxTF*0.8)} tepů/min`;
+}
+
+async function ulozAOdcvic(idx) {
+  const t = aktivniPlan[idx];
+  // Uloz reálné váhy
+  if (t.typ === 'silovy' && t.cviky) {
+    t.cviky.forEach((c, ci) => {
+      const input = document.getElementById(`vaha-${idx}-${ci}`);
+      if (input && input.value) c.realVaha = parseFloat(input.value);
+    });
+  }
+  oznacOdcviceno(idx);
+  closeModal('modalTrenink');
+}
+
+function oznacOdcviceno(idx) {
+  aktivniPlan[idx].stav = 'odcviceno';
+  renderTydenniPrehled();
+  ulozDoDeníku(aktivniPlan[idx]);
+  showToast('Trénink označen jako odcvičený ✓');
+}
+
+function otevriVynechani(idx) {
+  vynechaniIndex = idx;
+  openModal('modalVynechani');
+}
+
+function ulozVynechani() {
+  if (vynechaniIndex === null) return;
+  const duvod = document.getElementById('vynechani-duvod').value;
+  const poznamka = document.getElementById('vynechani-poznamka').value;
+  aktivniPlan[vynechaniIndex].stav = 'vynechano';
+  aktivniPlan[vynechaniIndex].duvod = duvod;
+  aktivniPlan[vynechaniIndex].poznamka = poznamka;
+  closeModal('modalVynechani');
+  renderTydenniPrehled();
+  showToast('Vynechání zaznamenáno');
+  vynechaniIndex = null;
+}
+
+function ulozDoDeníku(trenink) {
+  const denik = document.getElementById('denik-list');
+  const typLabel = trenink.typ === 'beh' ? '🏃 Běh' : trenink.typ === 'silovy' ? '🏋️ Silový' : '😴 Volno';
+  const html = `
+    <div class="denik-karta">
+      <div class="denik-datum">${trenink.datum}</div>
+      <div class="denik-info">
+        <h4>${trenink.nazev}</h4>
+        <p>${typLabel} · Odcvičeno</p>
+      </div>
+      <span class="badge badge-z">✓</span>
+    </div>
+  `;
+  if (denik.querySelector('.empty')) denik.innerHTML = '';
+  denik.insertAdjacentHTML('afterbegin', html);
+}
+
+// Přepsat showSection aby init plán sekci
+// Override showSection pro inicializaci plánu
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  if (typeof event !== 'undefined' && event?.currentTarget) event.currentTarget.classList.add('active');
+  if (id === 'plan') initPlanSection();
+}
+
 </script>
 </body>
 </html>
+<!-- PLACEHOLDER - will be replaced -->
