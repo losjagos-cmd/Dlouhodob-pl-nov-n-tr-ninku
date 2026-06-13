@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tréninkový plánovač</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #181c27;
+    --bg3: #1e2333;
+    --border: #2a3045;
+    --accent: #4f8ef7;
+    --accent2: #38d9a9;
+    --danger: #f56565;
+    --warn: #f6ad55;
+    --text: #e8eaf0;
+    --text2: #8892a4;
+    --text3: #545f75;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+  /* Layout */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar { width: 240px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100; }
+  .main { margin-left: 240px; flex: 1; padding: 2rem; max-width: 1100px; }
+
+  /* Sidebar */
+  .sidebar-logo { padding: 1.5rem 1.25rem 1rem; border-bottom: 1px solid var(--border); }
+  .sidebar-logo h1 { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+  .sidebar-logo p { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .nav { padding: 0.75rem 0; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 1.25rem; font-size: 14px; color: var(--text2); cursor: pointer; transition: all 0.15s; border-left: 2px solid transparent; }
+  .nav-item:hover { color: var(--text); background: var(--bg3); }
+  .nav-item.active { color: var(--accent); background: rgba(79,142,247,0.08); border-left-color: var(--accent); }
+  .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; }
+  .nav-section { padding: 1rem 1.25rem 0.25rem; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; }
+
+  /* Klient selector */
+  .client-bar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0.75rem 1.25rem; }
+  .client-select-wrap { display: flex; align-items: center; gap: 10px; }
+  .client-select-wrap label { font-size: 12px; color: var(--text3); white-space: nowrap; }
+  .client-select-wrap select { flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 13px; }
+  .btn-new-client { background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 6px 12px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .btn-new-client:hover { opacity: 0.88; }
+
+  /* Page header */
+  .page-header { margin-bottom: 1.5rem; }
+  .page-header h2 { font-size: 20px; font-weight: 600; color: var(--text); }
+  .page-header p { font-size: 14px; color: var(--text2); margin-top: 4px; }
+
+  /* Cards */
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+  /* Form */
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 5px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius-sm); padding: 8px 12px;
+    font-size: 14px; transition: border 0.15s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .form-group textarea { resize: vertical; min-height: 72px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: rgba(245,101,101,0.12); color: var(--danger); border: 1px solid rgba(245,101,101,0.25); }
+  .btn-danger:hover { background: rgba(245,101,101,0.2); }
+  .btn-sm { padding: 5px 10px; font-size: 13px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 1.25rem; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+  .stat-label { font-size: 12px; color: var(--text3); margin-bottom: 4px; }
+  .stat-val { font-size: 22px; font-weight: 600; color: var(--text); }
+  .stat-unit { font-size: 13px; color: var(--text2); font-weight: 400; margin-left: 3px; }
+
+  /* Tepové zóny */
+  .zones-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .zone { border-radius: var(--radius-sm); padding: 10px; text-align: center; }
+  .zone-label { font-size: 11px; font-weight: 600; margin-bottom: 3px; }
+  .zone-range { font-size: 13px; font-weight: 500; }
+  .zone-name { font-size: 11px; margin-top: 2px; opacity: 0.8; }
+  .z1 { background: rgba(56,217,169,0.12); color: var(--accent2); }
+  .z2 { background: rgba(79,142,247,0.12); color: var(--accent); }
+  .z3 { background: rgba(246,173,85,0.15); color: var(--warn); }
+  .z4 { background: rgba(245,101,101,0.12); color: var(--danger); }
+  .z5 { background: rgba(159,122,234,0.15); color: #9f7aea; }
+
+  /* Cviky tabulka */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; padding: 9px 12px; font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 12px; border-bottom: 1px solid rgba(42,48,69,0.5); color: var(--text2); }
+  tr:hover td { background: var(--bg3); }
+
+  /* Badge */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .badge-z { background: rgba(56,217,169,0.12); color: var(--accent2); }
+  .badge-p { background: rgba(79,142,247,0.12); color: var(--accent); }
+  .badge-e { background: rgba(159,122,234,0.15); color: #9f7aea; }
+
+  /* Filtry */
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .filter-btn { padding: 5px 12px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); transition: all 0.15s; }
+  .filter-btn:hover, .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,0.08); }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+  .modal-header h3 { font-size: 17px; font-weight: 600; }
+  .modal-close { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 20px; line-height: 1; padding: 2px; }
+  .modal-close:hover { color: var(--text); }
+
+  /* Klient karta */
+  .client-card { display: flex; align-items: center; gap: 12px; padding: 1rem 1.25rem; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; cursor: pointer; transition: all 0.15s; }
+  .client-card:hover { border-color: var(--accent); }
+  .client-avatar { width: 42px; height: 42px; border-radius: 50%; background: rgba(79,142,247,0.15); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px; color: var(--accent); flex-shrink: 0; }
+  .client-info h4 { font-size: 15px; font-weight: 500; color: var(--text); }
+  .client-info p { font-size: 13px; color: var(--text2); }
+  .client-card-actions { margin-left: auto; display: flex; gap: 6px; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 14px; z-index: 300; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+  .toast.success { border-color: var(--accent2); color: var(--accent2); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+  .toast.show { display: block; animation: slideIn 0.2s ease; }
+  @keyframes slideIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  /* Sekce */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); }
+  .empty p { margin-top: 0.5rem; font-size: 14px; }
+
+  /* Checklist vybavení */
+  .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+  .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text2); transition: all 0.15s; }
+  .checkbox-item input { accent-color: var(--accent); width: 14px; height: 14px; }
+  .checkbox-item:has(input:checked) { border-color: var(--accent); color: var(--text); background: rgba(79,142,247,0.07); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { width: 100%; height: auto; position: relative; }
+    .main { margin-left: 0; padding: 1rem; }
+    .app { flex-direction: column; }
+    .grid-2, .form-row { grid-template-columns: 1fr; }
+    .form-row-3 { grid-template-columns: 1fr 1fr; }
+    .zones-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>⚡ Tréninkový plánovač</h1>
+      <p>Správce tréninků</p>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Přehled</div>
+      <div class="nav-item active" onclick="showSection('dashboard')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showSection('klienti')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Klienti
+      </div>
+      <div class="nav-section">Tréninky</div>
+      <div class="nav-item" onclick="showSection('plan')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        Týdenní plán
+      </div>
+      <div class="nav-item" onclick="showSection('denik')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        Tréninkový deník
+      </div>
+      <div class="nav-section">Databáze</div>
+      <div class="nav-item" onclick="showSection('cviky')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        Databáze cviků
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Klient bar -->
+    <div class="client-bar" style="margin: -2rem -2rem 2rem; padding: 0.75rem 2rem;">
+      <div class="client-select-wrap">
+        <label>Aktivní klient:</label>
+        <select id="activeClientSelect" onchange="setActiveClient(this.value)">
+          <option value="">— vyberte klienta —</option>
+        </select>
+        <button class="btn-new-client" onclick="openModal('modalKlient')">+ Nový klient</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="sec-dashboard" class="section active">
+      <div class="page-header">
+        <h2>Dashboard</h2>
+        <p id="dash-subtitle">Vyberte klienta pro zobrazení přehledu.</p>
+      </div>
+      <div id="dash-content">
+        <div class="empty">
+          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto; opacity:0.3"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          <p>Zatím žádný klient není vybrán.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- KLIENTI -->
+    <div id="sec-klienti" class="section">
+      <div class="page-header">
+        <h2>Klienti</h2>
+        <p>Správa klientských profilů.</p>
+      </div>
+      <div id="klienti-list"></div>
+    </div>
+
+    <!-- TÝDENNÍ PLÁN -->
+    <div id="sec-plan" class="section">
+      <div class="page-header">
+        <h2>Týdenní plán</h2>
+        <p>Generování a správa tréninků na týden.</p>
+      </div>
+      <div class="card">
+        <p style="color:var(--text2); font-size:14px;">Funkce generování tréninků bude přidána v další fázi. Nejprve dokončete profil klienta.</p>
+      </div>
+    </div>
+
+    <!-- DENÍK -->
+    <div id="sec-denik" class="section">
+      <div class="page-header">
+        <h2>Tréninkový deník</h2>
+        <p>Záznamy odcvičených tréninků.</p>
+      </div>
+      <div class="card">
+        <p style="color:var(--text2); font-size:14px;">Tréninkový deník bude dostupný po vygenerování prvního tréninkového plánu.</p>
+      </div>
+    </div>
+
+    <!-- CVIKY -->
+    <div id="sec-cviky" class="section">
+      <div class="page-header">
+        <h2>Databáze cviků</h2>
+        <p>Přehled všech cviků rozdělených do kategorií.</p>
+      </div>
+      <div class="filters" id="cviky-filters">
+        <button class="filter-btn active" onclick="filterCviky('vse', this)">Vše</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Název cviku</th>
+                <th>Kategorie</th>
+                <th>Náročnost</th>
+              </tr>
+            </thead>
+            <tbody id="cviky-tbody">
+              <tr><td colspan="3" style="text-align:center; color:var(--text3); padding:2rem;">Načítání...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="openModal('modalCvik')" style="margin-top:0.5rem;">+ Přidat cvik</button>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL: Nový klient -->
+<div class="modal-overlay" id="modalKlient">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalKlientTitle">Nový klient</h3>
+      <button class="modal-close" onclick="closeModal('modalKlient')">×</button>
+    </div>
+
+    <div class="card-title">Základní informace</div>
+    <div class="form-row">
+      <div class="form-group"><label>Jméno *</label><input id="k-jmeno" type="text" placeholder="Jan"></div>
+      <div class="form-group"><label>Příjmení *</label><input id="k-prijmeni" type="text" placeholder="Novák"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>E-mail</label><input id="k-email" type="email" placeholder="jan@email.cz"></div>
+      <div class="form-group"><label>Pohlaví</label>
+        <select id="k-pohlavi"><option value="">— nevyplněno —</option><option value="muz">Muž</option><option value="zena">Žena</option></select>
+      </div>
+    </div>
+
+    <div class="card-title" style="margin-top:1rem;">Fyzické parametry</div>
+    <div class="form-row-3">
+      <div class="form-group"><label>Věk</label><input id="k-vek" type="number" placeholder="30"></div>
+      <div class="form-group"><label>Výška (cm)</label><input id="k-vyska" type="number" placeholder="180"></div>
+      <div class="form-group"><label>Váha (kg)</label><input id="k-vaha" type="number" placeholder="75"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Max. tepová frekvence</label><input id="k-maxtf" type="number" placeholder="190"></div>
+      <div class="form-group"><label>Anaerobní práh (TF)</label><input id="k-anprah" type="number" placeholder="165"></div>
+    </div>
+
+    <div class="card-title" style="margin-top:1rem;">Tréninkové preference</div>
+    <div class="form-row">
+      <div class="form-group"><label>Běhy za týden</label>
+        <select id="k-behy"><option value="1">1x</option><option value="2">2x</option><option value="3" selected>3x</option><option value="4">4x</option><option value="5">5x</option></select>
+      </div>
+      <div class="form-group"><label>Silové tréninky za týden</label>
+        <select id="k-silove"><option value="1">1x</option><option value="2" selected>2x</option><option value="3">3x</option><option value="4">4x</option></select>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:0.5rem;">
+      <label>Dostupné vybavení</label>
+      <div class="checkbox-grid" id="vybaveni-grid">
+        <label class="checkbox-item"><input type="checkbox" value="posilovna"> Posilovna</label>
+        <label class="checkbox-item"><input type="checkbox" value="cinky"> Činky</label>
+        <label class="checkbox-item"><input type="checkbox" value="kettlebell"> Kettlebell</label>
+        <label class="checkbox-item"><input type="checkbox" value="hrazda"> Hrazda</label>
+        <label class="checkbox-item"><input type="checkbox" value="trx"> TRX</label>
+        <label class="checkbox-item"><input type="checkbox" value="expander"> Expandery</label>
+        <label class="checkbox-item"><input type="checkbox" value="kolecko"> Kolečko na břicho</label>
+        <label class="checkbox-item"><input type="checkbox" value="medicinbal"> Medicinbal</label>
+        <label class="checkbox-item"><input type="checkbox" value="vlastni_vaha"> Vlastní váha</label>
+      </div>
+    </div>
+
+    <div class="card-title" style="margin-top:1rem;">Zdravotní informace</div>
+    <div class="form-group"><label>Zdravotní omezení</label><textarea id="k-zdravotni" placeholder="Např. problémy s kolenem, herniovaný disk..."></textarea></div>
+    <div class="form-group"><label>Zranění v historii</label><textarea id="k-zraneni" placeholder="Např. zlomenina kotníku 2022..."></textarea></div>
+    <div class="form-group"><label>Sportovní historie</label><textarea id="k-sporthistorie" placeholder="Např. 5 let závodní plavání, rekreační běh 2 roky..."></textarea></div>
+
+    <input type="hidden" id="k-id">
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveKlient()">Uložit klienta</button>
+      <button class="btn btn-secondary" onclick="closeModal('modalKlient')">Zrušit</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nový cvik -->
+<div class="modal-overlay" id="modalCvik">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Přidat cvik</h3>
+      <button class="modal-close" onclick="closeModal('modalCvik')">×</button>
+    </div>
+    <div class="form-group"><label>Název cviku *</label><input id="c-nazev" type="text" placeholder="Název cviku"></div>
+    <div class="form-group"><label>Kategorie *</label>
+      <select id="c-kategorie"><option value="">— vyberte kategorii —</option></select>
+    </div>
+    <div class="form-group"><label>Náročnost *</label>
+      <select id="c-narocnost">
+        <option value="zacatecnik">Začátečník</option>
+        <option value="pokrocily">Pokročilý</option>
+        <option value="expert">Expert</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveCvik()">Přidat</button>
+      <button class="btn btn-secondary" onclick="closeModal('modalCvik')">Zrušit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://vvjcxxrderzmckokefzu.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_METCy6WO_G0FvXXvsXNwbA_AqPaAe1m';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let klienti = [];
+let aktKlient = null;
+let vsechnyCviky = [];
+let kategorie = [];
+
+// Init
+async function init() {
+  await loadKlienti();
+  await loadCviky();
+  await loadKategorie();
+}
+
+// Sekce
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// Modal
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'modalKlient') resetKlientForm();
+}
+
+// Toast
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Klienti
+async function loadKlienti() {
+  const { data, error } = await db.from('klienti').select('*').order('prijmeni');
+  if (error) { showToast('Chyba při načítání klientů', 'error'); return; }
+  klienti = data || [];
+  renderKlientiSelect();
+  renderKlientiList();
+}
+
+function renderKlientiSelect() {
+  const sel = document.getElementById('activeClientSelect');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— vyberte klienta —</option>';
+  klienti.forEach(k => {
+    const o = document.createElement('option');
+    o.value = k.id;
+    o.textContent = k.jmeno + ' ' + k.prijmeni;
+    sel.appendChild(o);
+  });
+  if (prev) sel.value = prev;
+}
+
+function renderKlientiList() {
+  const el = document.getElementById('klienti-list');
+  if (!klienti.length) {
+    el.innerHTML = '<div class="empty"><p>Zatím žádní klienti. Přidejte prvního klienta.</p></div>';
+    return;
+  }
+  el.innerHTML = klienti.map(k => `
+    <div class="client-card">
+      <div class="client-avatar">${k.jmeno[0]}${k.prijmeni[0]}</div>
+      <div class="client-info">
+        <h4>${k.jmeno} ${k.prijmeni}</h4>
+        <p>${[k.vek ? k.vek + ' let' : '', k.vaha ? k.vaha + ' kg' : '', k.vyska ? k.vyska + ' cm' : ''].filter(Boolean).join(' · ') || 'Bez vyplněných parametrů'}</p>
+      </div>
+      <div class="client-card-actions">
+        <button class="btn btn-secondary btn-sm" onclick="editKlient('${k.id}')">Upravit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteKlient('${k.id}')">Smazat</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setActiveClient(id) {
+  aktKlient = klienti.find(k => k.id === id) || null;
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const subtitle = document.getElementById('dash-subtitle');
+  const content = document.getElementById('dash-content');
+  if (!aktKlient) {
+    subtitle.textContent = 'Vyberte klienta pro zobrazení přehledu.';
+    content.innerHTML = '<div class="empty"><svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin:0 auto;opacity:0.3"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg><p>Zatím žádný klient není vybrán.</p></div>';
+    return;
+  }
+  const k = aktKlient;
+  subtitle.textContent = k.jmeno + ' ' + k.prijmeni;
+
+  // Tepové zóny
+  let zonesHtml = '';
+  if (k.max_tf) {
+    const maxTF = k.max_tf;
+    const anPrah = k.anaerobni_prah || Math.round(maxTF * 0.87);
+    const zones = [
+      { label: 'Zóna 1', name: 'Regenerace', min: Math.round(maxTF * 0.5), max: Math.round(maxTF * 0.6), cls: 'z1' },
+      { label: 'Zóna 2', name: 'Aerobní', min: Math.round(maxTF * 0.6), max: Math.round(maxTF * 0.7), cls: 'z2' },
+      { label: 'Zóna 3', name: 'Tempo', min: Math.round(maxTF * 0.7), max: Math.round(maxTF * 0.8), cls: 'z3' },
+      { label: 'Zóna 4', name: 'Laktátový práh', min: Math.round(maxTF * 0.8), max: anPrah, cls: 'z4' },
+      { label: 'Zóna 5', name: 'Maximální', min: anPrah, max: maxTF, cls: 'z5' },
+    ];
+    zonesHtml = `
+      <div class="card" style="margin-top:1rem;">
+        <div class="card-title">Tepové zóny</div>
+        <div class="zones-grid">
+          ${zones.map(z => `<div class="zone ${z.cls}"><div class="zone-label">${z.label}</div><div class="zone-range">${z.min}–${z.max}</div><div class="zone-name">${z.name}</div></div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  // Vybavení
+  const vyb = Array.isArray(k.vybaveni) ? k.vybaveni : [];
+  const vybLabels = { posilovna: 'Posilovna', cinky: 'Činky', kettlebell: 'Kettlebell', hrazda: 'Hrazda', trx: 'TRX', expander: 'Expandery', kolecko: 'Kolečko', medicinbal: 'Medicinbal', vlastni_vaha: 'Vlastní váha' };
+
+  content.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Věk</div><div class="stat-val">${k.vek || '—'}<span class="stat-unit">${k.vek ? 'let' : ''}</span></div></div>
+      <div class="stat-card"><div class="stat-label">Výška</div><div class="stat-val">${k.vyska || '—'}<span class="stat-unit">${k.vyska ? 'cm' : ''}</span></div></div>
+      <div class="stat-card"><div class="stat-label">Váha</div><div class="stat-val">${k.vaha || '—'}<span class="stat-unit">${k.vaha ? 'kg' : ''}</span></div></div>
+      <div class="stat-card"><div class="stat-label">Max. TF</div><div class="stat-val">${k.max_tf || '—'}<span class="stat-unit">${k.max_tf ? 'tep/min' : ''}</span></div></div>
+      <div class="stat-card"><div class="stat-label">Běhy / týden</div><div class="stat-val">${k.bezky_tyden || 3}<span class="stat-unit">×</span></div></div>
+      <div class="stat-card"><div class="stat-label">Silové / týden</div><div class="stat-val">${k.silovy_tyden || 2}<span class="stat-unit">×</span></div></div>
+    </div>
+    ${zonesHtml}
+    ${vyb.length ? `<div class="card" style="margin-top:1rem;"><div class="card-title">Vybavení</div><div style="display:flex;flex-wrap:wrap;gap:8px;">${vyb.map(v => `<span class="badge badge-p">${vybLabels[v] || v}</span>`).join('')}</div></div>` : ''}
+    ${k.zdravotni_omezeni || k.zraneni || k.sportovni_historie ? `
+    <div class="card" style="margin-top:1rem;">
+      <div class="card-title">Zdravotní & sportovní info</div>
+      ${k.zdravotni_omezeni ? `<div style="margin-bottom:0.75rem;"><div style="font-size:12px;color:var(--text3);margin-bottom:3px;">Zdravotní omezení</div><div style="font-size:14px;color:var(--text2);">${k.zdravotni_omezeni}</div></div>` : ''}
+      ${k.zraneni ? `<div style="margin-bottom:0.75rem;"><div style="font-size:12px;color:var(--text3);margin-bottom:3px;">Zranění v historii</div><div style="font-size:14px;color:var(--text2);">${k.zraneni}</div></div>` : ''}
+      ${k.sportovni_historie ? `<div><div style="font-size:12px;color:var(--text3);margin-bottom:3px;">Sportovní historie</div><div style="font-size:14px;color:var(--text2);">${k.sportovni_historie}</div></div>` : ''}
+    </div>` : ''}
+  `;
+}
+
+async function saveKlient() {
+  const jmeno = document.getElementById('k-jmeno').value.trim();
+  const prijmeni = document.getElementById('k-prijmeni').value.trim();
+  if (!jmeno || !prijmeni) { showToast('Vyplňte jméno a příjmení', 'error'); return; }
+
+  const vyb = [...document.querySelectorAll('#vybaveni-grid input:checked')].map(i => i.value);
+  const data = {
+    jmeno, prijmeni,
+    email: document.getElementById('k-email').value || null,
+    pohlavi: document.getElementById('k-pohlavi').value || null,
+    vek: parseInt(document.getElementById('k-vek').value) || null,
+    vyska: parseInt(document.getElementById('k-vyska').value) || null,
+    vaha: parseFloat(document.getElementById('k-vaha').value) || null,
+    max_tf: parseInt(document.getElementById('k-maxtf').value) || null,
+    anaerobni_prah: parseInt(document.getElementById('k-anprah').value) || null,
+    bezky_tyden: parseInt(document.getElementById('k-behy').value) || 3,
+    silovy_tyden: parseInt(document.getElementById('k-silove').value) || 2,
+    vybaveni: vyb,
+    zdravotni_omezeni: document.getElementById('k-zdravotni').value || null,
+    zraneni: document.getElementById('k-zraneni').value || null,
+    sportovni_historie: document.getElementById('k-sporthistorie').value || null,
+  };
+
+  const editId = document.getElementById('k-id').value;
+  let error;
+  if (editId) {
+    ({ error } = await db.from('klienti').update(data).eq('id', editId));
+  } else {
+    ({ error } = await db.from('klienti').insert(data));
+  }
+
+  if (error) { showToast('Chyba při ukládání: ' + error.message, 'error'); return; }
+  showToast(editId ? 'Klient upraven' : 'Klient přidán');
+  closeModal('modalKlient');
+  await loadKlienti();
+  if (editId && aktKlient?.id === editId) {
+    aktKlient = klienti.find(k => k.id === editId);
+    renderDashboard();
+  }
+}
+
+function resetKlientForm() {
+  ['k-id','k-jmeno','k-prijmeni','k-email','k-vek','k-vyska','k-vaha','k-maxtf','k-anprah','k-zdravotni','k-zraneni','k-sporthistorie'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('k-pohlavi').value = '';
+  document.getElementById('k-behy').value = '3';
+  document.getElementById('k-silove').value = '2';
+  document.querySelectorAll('#vybaveni-grid input').forEach(i => i.checked = false);
+  document.getElementById('modalKlientTitle').textContent = 'Nový klient';
+}
+
+function editKlient(id) {
+  const k = klienti.find(c => c.id === id);
+  if (!k) return;
+  document.getElementById('k-id').value = k.id;
+  document.getElementById('k-jmeno').value = k.jmeno || '';
+  document.getElementById('k-prijmeni').value = k.prijmeni || '';
+  document.getElementById('k-email').value = k.email || '';
+  document.getElementById('k-pohlavi').value = k.pohlavi || '';
+  document.getElementById('k-vek').value = k.vek || '';
+  document.getElementById('k-vyska').value = k.vyska || '';
+  document.getElementById('k-vaha').value = k.vaha || '';
+  document.getElementById('k-maxtf').value = k.max_tf || '';
+  document.getElementById('k-anprah').value = k.anaerobni_prah || '';
+  document.getElementById('k-behy').value = k.bezky_tyden || 3;
+  document.getElementById('k-silove').value = k.silovy_tyden || 2;
+  document.getElementById('k-zdravotni').value = k.zdravotni_omezeni || '';
+  document.getElementById('k-zraneni').value = k.zraneni || '';
+  document.getElementById('k-sporthistorie').value = k.sportovni_historie || '';
+  const vyb = Array.isArray(k.vybaveni) ? k.vybaveni : [];
+  document.querySelectorAll('#vybaveni-grid input').forEach(i => i.checked = vyb.includes(i.value));
+  document.getElementById('modalKlientTitle').textContent = 'Upravit klienta';
+  openModal('modalKlient');
+}
+
+async function deleteKlient(id) {
+  if (!confirm('Opravdu smazat tohoto klienta?')) return;
+  const { error } = await db.from('klienti').delete().eq('id', id);
+  if (error) { showToast('Chyba při mazání', 'error'); return; }
+  showToast('Klient smazán');
+  if (aktKlient?.id === id) { aktKlient = null; renderDashboard(); document.getElementById('activeClientSelect').value = ''; }
+  await loadKlienti();
+}
+
+// Cviky
+async function loadCviky() {
+  const { data, error } = await db.from('cviky').select('*, kategorie_cviku(nazev)').order('nazev');
+  if (error) return;
+  vsechnyCviky = data || [];
+  renderCviky(vsechnyCviky);
+}
+
+async function loadKategorie() {
+  const { data } = await db.from('kategorie_cviku').select('*').order('nazev');
+  kategorie = data || [];
+  // Filtry
+  const filtersEl = document.getElementById('cviky-filters');
+  filtersEl.innerHTML = '<button class="filter-btn active" onclick="filterCviky(\'vse\', this)">Vše</button>';
+  kategorie.forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'filter-btn';
+    b.textContent = k.nazev;
+    b.onclick = function() { filterCviky(k.id, this); };
+    filtersEl.appendChild(b);
+  });
+  // Select v modalu
+  const sel = document.getElementById('c-kategorie');
+  sel.innerHTML = '<option value="">— vyberte kategorii —</option>';
+  kategorie.forEach(k => {
+    const o = document.createElement('option');
+    o.value = k.id;
+    o.textContent = k.nazev;
+    sel.appendChild(o);
+  });
+}
+
+function renderCviky(cviky) {
+  const tbody = document.getElementById('cviky-tbody');
+  if (!cviky.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:2rem;">Žádné cviky nenalezeny.</td></tr>';
+    return;
+  }
+  const badgeMap = { zacatecnik: 'badge-z', pokrocily: 'badge-p', expert: 'badge-e' };
+  const labelMap = { zacatecnik: 'Začátečník', pokrocily: 'Pokročilý', expert: 'Expert' };
+  tbody.innerHTML = cviky.map(c => `
+    <tr>
+      <td style="color:var(--text);font-weight:500;">${c.nazev}</td>
+      <td>${c.kategorie_cviku?.nazev || '—'}</td>
+      <td><span class="badge ${badgeMap[c.narocnost] || ''}">${labelMap[c.narocnost] || c.narocnost}</span></td>
+    </tr>
+  `).join('');
+}
+
+function filterCviky(katId, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (katId === 'vse') { renderCviky(vsechnyCviky); return; }
+  renderCviky(vsechnyCviky.filter(c => c.kategorie_id === katId));
+}
+
+async function saveCvik() {
+  const nazev = document.getElementById('c-nazev').value.trim();
+  const kat = document.getElementById('c-kategorie').value;
+  const nar = document.getElementById('c-narocnost').value;
+  if (!nazev || !kat) { showToast('Vyplňte název a kategorii', 'error'); return; }
+  const { error } = await db.from('cviky').insert({ nazev, kategorie_id: kat, narocnost: nar });
+  if (error) { showToast('Chyba: ' + error.message, 'error'); return; }
+  showToast('Cvik přidán');
+  closeModal('modalCvik');
+  document.getElementById('c-nazev').value = '';
+  await loadCviky();
+}
+
+init();
+</script>
+</body>
+</html>
