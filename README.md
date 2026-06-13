@@ -1,0 +1,1 @@
+# Dlouhodob-pl-nov-n-tr-ninku
